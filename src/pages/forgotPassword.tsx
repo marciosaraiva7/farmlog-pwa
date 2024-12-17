@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ClipLoader from "react-spinners/ClipLoader";
-import IconBack from "../assets/icons/icon-back.svg";
+import IconBack from "../assets/icons/icon-back.tsx";
 
 function ForgotPassword() {
   const [error, setError] = useState(false);
@@ -51,7 +51,7 @@ function ForgotPassword() {
           className="flex h-[35px] w-fit items-center bg-transparent p-0 focus:border-none focus:outline-none"
           onClick={backTo}
         >
-          <img src={IconBack} />
+          <IconBack />
         </button>
         <h2 className="text-[27px] font-bold leading-[35px]">
           Recuperar senha

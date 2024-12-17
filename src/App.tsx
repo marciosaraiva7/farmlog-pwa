@@ -2,6 +2,8 @@ import mapboxgl, { Map } from "mapbox-gl";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./context/auth";
 
+import { ClientTypes } from "./types/schema";
+
 import { AvatarUser } from "./components/AvatarUser";
 import useInitials from "./hooks/initialsName";
 
@@ -13,6 +15,7 @@ import { DropdownMenuButton } from "./components/DropdownMenuButton";
 function App() {
   const [latitude, setLatitude] = useState<number>(0);
   const [longitude, setLongitude] = useState<number>(0);
+  const [clients, setClients] = useState<ClientTypes[]>([]); // Estado para armazenar os dados do cliente
   const mapRef = useRef<Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null); // Ref para o container do mapa
   const { user } = useAuth();
@@ -40,6 +43,41 @@ function App() {
       setLongitude(longitude);
     }
   };
+
+  // Busca os dados da fazenda e salva no localStorage
+  useEffect(() => {
+    const fetchFarmData = async () => {
+      const clientId = user?.idClienteFazenda; // ID do cliente dentro do user
+      if (!clientId) {
+        console.error("ID do cliente não encontrado.");
+        return;
+      }
+
+      // Verifica se já existe no localStorage
+      const savedClient = localStorage.getItem("farmData");
+      if (savedClient) {
+        setClients([JSON.parse(savedClient)]);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://farmlog-api.wr-agro.dev.br:3003/api/getFarm/${clientId}`,
+        );
+        if (!response.ok) {
+          throw new Error("Erro ao buscar os dados da fazenda.");
+        }
+
+        const data = await response.json();
+        localStorage.setItem("farmData", JSON.stringify(data)); // Salva no localStorage
+        setClients([data]); // Define os dados no estado
+      } catch (error) {
+        console.error("Erro na requisição da API:", error);
+      }
+    };
+
+    fetchFarmData();
+  }, [user?.idClienteFazenda]);
 
   useEffect(() => {
     mapboxgl.accessToken =
@@ -83,6 +121,12 @@ function App() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
+  // Transformar os dados de clients para conter apenas id e name
+  const transformedClients = clients.map((client) => ({
+    id: client.id,
+    name: client.proprietario,
+  }));
+
   return (
     <div className="h-screen">
       <div className="absolute top-[59px] z-10 flex w-full justify-between pl-[20px] pr-[20px]">
@@ -107,7 +151,11 @@ function App() {
         ref={mapContainerRef}
       />
 
-      <ControlBar latitude={latitude} longitude={longitude} />
+      <ControlBar
+        latitude={latitude}
+        longitude={longitude}
+        listControl={transformedClients} // Passar apenas id e name
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import ClipLoader from "react-spinners/ClipLoader";
 import Logo from "../assets/images/logo.png";
 import { useAuth } from "../context/auth";
 
-const Login = () => {
+const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -15,6 +15,7 @@ const Login = () => {
 
   const handleLogin = async () => {
     setLoading(true);
+
     try {
       const response = await fetch(
         "https://farmlog-api.wr-agro.dev.br:3003/api/login",
@@ -90,4 +91,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default LoginPage;

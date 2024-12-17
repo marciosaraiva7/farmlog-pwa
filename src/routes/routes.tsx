@@ -8,9 +8,10 @@ import {
 import App from "../App";
 import Layout from "../components/layout";
 import { useAuth } from "../context/auth";
-import Annotation from "../pages/annotation";
+import AnnotationPage from "../pages/annotation";
 import ForgotPassword from "../pages/forgotPassword";
-import Login from "../pages/login";
+import LoginPage from "../pages/login";
+import RegisterPage from "../pages/register";
 import PrivateRoute from "../routes/PrivateRoute";
 
 const PublicRoute = ({ children }: { children: ReactNode }) => {
@@ -22,15 +23,26 @@ const PublicRoute = ({ children }: { children: ReactNode }) => {
 const AppRoutes = () => {
   return (
     <Router>
+      {/* Publics */}
       <Routes>
         <Route
           path="/login"
           element={
             <PublicRoute>
-              <Login />
+              <LoginPage />
             </PublicRoute>
           }
         />
+        <Route
+          path="/ForgotPassword"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
+
+        {/* Privates */}
         <Route
           path="/"
           element={
@@ -45,16 +57,16 @@ const AppRoutes = () => {
           path="/Annotation"
           element={
             <PrivateRoute>
-              <Annotation />
+              <AnnotationPage />
             </PrivateRoute>
           }
         />
         <Route
-          path="/ForgotPassword"
+          path="/register"
           element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
+            <PrivateRoute>
+              <RegisterPage />
+            </PrivateRoute>
           }
         />
       </Routes>

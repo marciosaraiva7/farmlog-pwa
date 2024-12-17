@@ -9,8 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-
-import MenuIcon from "../assets/icons/menuIcon";
+import { FaBars } from "react-icons/fa6";
 
 // Tipagem das Props
 type DropdownMenuButtonProps = {
@@ -36,8 +35,8 @@ export function DropdownMenuButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="rounded-lg" asChild>
-        <Button className="flex h-[60px] w-[60px] items-center justify-center focus-visible:outline-none focus-within:outline-none bg-[#181A18CC] rounded-[15px] border-none outline-none">
-          <MenuIcon />
+        <Button className="flex h-[60px] w-[60px] items-center justify-center p-0 focus-visible:outline-none  focus-within:outline-none bg-[#181A18CC] rounded-[15px] border-none outline-none">
+          <FaBars width={50} height={40} fill="white" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="mr-[50px] bg-white border-none rounded-[20px] text-black p-[20px]">

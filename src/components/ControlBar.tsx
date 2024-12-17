@@ -1,14 +1,21 @@
 import RegisterIcon from "@/assets/icons/register";
+import { ListControlProps } from "@/types/schema";
 import { useState } from "react";
+import { DropdownMenuList } from "./DropdownMenuList";
 import LegendNDVI from "./LegendNDVI";
 import { Button } from "./ui/button";
 
 type ControlBarProps = {
   latitude: number;
   longitude: number;
+  listControl: ListControlProps[];
 };
 
-export function ControlBar({ latitude, longitude }: ControlBarProps) {
+export function ControlBar({
+  latitude,
+  longitude,
+  listControl,
+}: ControlBarProps) {
   const [register, setRegister] = useState(false);
   return (
     <>
@@ -28,7 +35,9 @@ export function ControlBar({ latitude, longitude }: ControlBarProps) {
             </div>
             <div>
               <p className="text-white">Cliente</p>
+              <DropdownMenuList list={listControl} />
               <p className="text-white">Fazenda</p>
+              <DropdownMenuList />
             </div>
           </div>
         )}
