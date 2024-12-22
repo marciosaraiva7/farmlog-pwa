@@ -11,7 +11,6 @@ import {
 import { useState } from "react";
 import { FaBars } from "react-icons/fa6";
 
-// Tipagem das Props
 type DropdownMenuButtonProps = {
   label: string;
   items: { id: string; label: string }[];
@@ -23,7 +22,7 @@ export function DropdownMenuButton({
   items,
   onSelect,
 }: DropdownMenuButtonProps) {
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<string | null>("ndvi");
 
   const handleSelect = (id: string) => {
     setSelectedItem(id);
