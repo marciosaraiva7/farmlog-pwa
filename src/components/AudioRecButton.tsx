@@ -2,12 +2,11 @@ import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { BsFillMicFill, BsRecordCircle, BsX } from "react-icons/bs";
 import { FaTrash } from "react-icons/fa";
-
 import AudioPlayer from "./AudioPlayer";
 
 interface AudioRecorderProps {
-  setAudioList: (files: File[]) => void; // Function to update the parent list
-  audioList?: File[]; // Preloaded list of audio files
+  setAudioList: (files: (File | string)[]) => void; // Function to update the parent list
+  audioList?: (File | string)[]; // Preloaded list of audio files ou URLs
 }
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({
@@ -19,7 +18,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
     null,
   );
   const [audioURLs, setAudioURLs] = useState<string[]>(
-    audioList.map((file) => URL.createObjectURL(file)),
+    audioList.map((audio) =>
+      typeof audio === "string" ? audio : URL.createObjectURL(audio),
+    ),
   );
   const [recordingTime, setRecordingTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -58,13 +59,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
           type: "audio/webm",
         });
 
-        // Update the audio list and URLs
         const updatedList = [...audioList, audioFile];
         setAudioList(updatedList);
-        setAudioURLs((prevURLs) => [
-          ...prevURLs,
-          URL.createObjectURL(audioFile),
-        ]);
+        setAudioURLs((prev) => [...prev, URL.createObjectURL(audioFile)]);
       }
     };
 
@@ -89,7 +86,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
   const deleteRecording = (index: number) => {
     const updatedAudioList = audioList.filter((_, i) => i !== index);
-    setAudioList(updatedAudioList); // Update the parent state
+    setAudioList(updatedAudioList);
     setAudioURLs((prevURLs) => prevURLs.filter((_, i) => i !== index));
   };
 
@@ -115,6 +112,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
           ))}
         </div>
       )}
+
+      {/* Botão de gravar */}
       {!isRecording ? (
         <button
           type="button"
@@ -134,7 +133,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
               <FaTrash fill="white" />
             </button>
             <div className="flex gap-4 items-center justify-center">
-              <div className="animate-pulse ">
+              <div className="animate-pulse">
                 <BsRecordCircle size={"21px"} fill="red" />
               </div>
               <p className="text-black">Gravando</p>

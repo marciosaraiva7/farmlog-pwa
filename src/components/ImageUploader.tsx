@@ -3,9 +3,9 @@ import { BsX } from "react-icons/bs";
 import { FaRegImage } from "react-icons/fa";
 
 interface ImageUploaderProps {
-  setImageFiles: (files: File[]) => void;
-  setDeleted: (deletedImages: string[]) => void;
-  imageList?: string[];
+  setImageFiles: (files: (File | string)[]) => void;
+  setDeleted: (deletedImages: (File | string)[]) => void;
+  imageList?: (File | string)[]; // Permitir strings (URL) e arquivos (File)
 }
 
 const ImageUploader = ({
@@ -13,21 +13,26 @@ const ImageUploader = ({
   setDeleted,
   imageList = [],
 }: ImageUploaderProps) => {
-  const [imagePreviews, setImagePreviews] = useState<string[]>(imageList);
-  const [images, setImages] = useState<File[]>([]);
+  // Converte cada item para uma string de preview
+  // Se for File, cria URL temporária, se for string (URL), mantém como está.
+  const [imagePreviews, setImagePreviews] = useState<string[]>(
+    imageList.map((img) =>
+      typeof img === "string" ? img : URL.createObjectURL(img),
+    ),
+  );
+
+  const [images, setImages] = useState<(File | string)[]>(imageList);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const newImageFiles = files.filter((file): file is File =>
+    const newImageFiles = files.filter((file) =>
       file.type.startsWith("image/"),
     );
 
-    // Combine the existing files with the new ones
     const updatedFiles = [...images, ...newImageFiles];
-    setImages(updatedFiles); // Update local state
-    setImageFiles(updatedFiles); // Update parent state
+    setImages(updatedFiles);
+    setImageFiles(updatedFiles);
 
-    // Generate previews for the new files
     const newImagePreviews = newImageFiles.map((file) =>
       URL.createObjectURL(file),
     );
@@ -35,23 +40,15 @@ const ImageUploader = ({
   };
 
   const removeImage = (index: number) => {
-    const isPreloaded = index < imageList.length;
+    const updatedImages = images.filter((_, i) => i !== index);
+    setImages(updatedImages);
+    setImageFiles(updatedImages);
 
-    if (isPreloaded) {
-      // Add the preloaded image to the deleted list
-      setDeleted([...imageList.slice(0, index), ...imageList.slice(index + 1)]);
-    } else {
-      // Remove a locally added image
-      const localIndex = index - imageList.length;
-      const updatedImages = images.filter((_, i) => i !== localIndex);
-      setImages(updatedImages);
-      setImageFiles(updatedImages);
-    }
+    const updatedPreviews = imagePreviews.filter((_, i) => i !== index);
+    setImagePreviews(updatedPreviews);
 
-    // Remove the preview image
-    setImagePreviews((prevPreviews) =>
-      prevPreviews.filter((_, i) => i !== index),
-    );
+    // Passa para o pai qual imagem foi deletada
+    setDeleted(images.filter((_, i) => i === index));
   };
 
   return (

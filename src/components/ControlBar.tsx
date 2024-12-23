@@ -32,6 +32,7 @@ export function ControlBar({
   const [register, setRegister] = useState(false);
   const [selectedFarm, setSelectedFarm] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [selectedAreaName, setSelectedAreaName] = useState<string | null>(null);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [areas, setAreas] = useState<FieldType[]>([]);
   const [fields, setFields] = useState<FieldProps[]>([]);
@@ -50,7 +51,11 @@ export function ControlBar({
   function handleIdTalhao(id: string) {
     setSelectedField(id);
     const farmData = JSON.parse(localStorage.getItem("farmData") || "");
-    const farmDataUpdate = JSON.stringify({ ...farmData, idTalhao: id });
+    const farmDataUpdate = JSON.stringify({
+      ...farmData,
+      idTalhao: id,
+      nomeFazenda: selectedAreaName,
+    });
     localStorage.setItem("farmData", farmDataUpdate);
   }
 
@@ -93,10 +98,11 @@ export function ControlBar({
     loadFields();
   }, [selectedArea]);
 
-  useEffect(() => {}, []);
-
-  console.log("areas", selectedArea);
-  console.log("talhoes", selectedField);
+  useEffect(() => {
+    const area = areas.find((item) => item.id === selectedArea);
+    setSelectedAreaName(area?.nomeFazenda || "");
+    console.log(area?.nomeFazenda);
+  }, [areas, selectedArea]);
 
   return (
     <>

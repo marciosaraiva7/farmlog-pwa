@@ -45,3 +45,20 @@ export type AnnotationType = {
   audios: { id: string; audioUrl: string }[];
   imagens: { id: string; imageUrl: string }[];
 };
+
+export type FarmDataType = {
+  createdAt: string;
+  estado: string;
+  id: string;
+  idGestor: string;
+  idTalhao: string;
+  nomeFazenda: string;
+  proprietario: string;
+  tiposAnotacao: object[];
+  updatedAt: string;
+};
+
+export type LastLocationType = {
+  latitude: number;
+  longitude: number;
+};

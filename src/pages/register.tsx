@@ -18,30 +18,82 @@ type FormValues = {
   nrAnotacao: string;
   urgencia: string;
   idTalhao: string;
-  images: File[];
-  audios: File[];
+  images: (File | string)[]; // Permitir strings e arquivos
+  audios: (File | string)[]; // Pode ser ajustado para incluir strings se necessário
 };
 
 // Função para converter um arquivo em base64, retornando nome e tipo
-function fileToBase64WithMeta(
-  file: File,
-): Promise<{ base64: string; name: string; type: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = function (evt) {
-      const base64String = (evt.target?.result as string) || "";
-      resolve({
-        base64: base64String,
-        name: file.name,
-        type: file.type,
-      });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+// function fileToBase64WithMeta(
+//   file: File,
+// ): Promise<{ base64: string; name: string; type: string }> {
+//   return new Promise((resolve, reject) => {
+//     const reader = new FileReader();
+//     reader.onload = function (evt) {
+//       const base64String = (evt.target?.result as string) || "";
+//       resolve({
+//         base64: base64String,
+//         name: file.name,
+//         type: file.type,
+//       });
+//     };
+//     reader.onerror = reject;
+//     reader.readAsDataURL(file);
+//   });
+// }
 
 // Função para salvar offline respeitando a estrutura do body do cURL.
+// async function saveAnnotationOffline(formData: FormData) {
+//   try {
+//     const offlineAnnotations = JSON.parse(
+//       localStorage.getItem("offlineAnnotations") || "[]",
+//     );
+
+//     const annotationOffline = {
+//       id: (formData.get("id") as string) || "",
+//       nrAnotacao: parseInt(formData.get("nrAnotacao") as string, 10) || 0,
+//       data: (formData.get("data") as string) || new Date().toISOString(),
+//       latitude: parseFloat(formData.get("latitude") as string) || 0,
+//       longitude: parseFloat(formData.get("longitude") as string) || 0,
+//       idTalhao: (formData.get("idTalhao") as string) || "",
+//       idTecnicoCampo: (formData.get("idTecnicoCampo") as string) || "",
+//       titulo: (formData.get("titulo") as string) || "",
+//       descricao: (formData.get("descricao") as string) || "",
+//       urgencia: parseInt(formData.get("urgencia") as string, 10) || 0,
+//       updatedAt: new Date().toISOString(),
+
+//       // Arrays contendo apenas os binários em base64
+//       imagens: [] as string[],
+//       audios: [] as string[],
+//     };
+
+//     // Convertendo as imagens para base64
+//     const imageFiles = formData.getAll("imagens");
+//     for (const img of imageFiles) {
+//       if (img instanceof File) {
+//         const base64file = await fileToBase64WithMeta(img);
+//         annotationOffline.imagens.push(base64file.base64);
+//       }
+//     }
+
+//     // Convertendo os áudios para base64
+//     const audioFiles = formData.getAll("audios");
+//     for (const audio of audioFiles) {
+//       if (audio instanceof File) {
+//         const base64file = await fileToBase64WithMeta(audio);
+//         annotationOffline.audios.push(base64file.base64);
+//       }
+//     }
+
+//     offlineAnnotations.push(annotationOffline);
+//     localStorage.setItem(
+//       "offlineAnnotations",
+//       JSON.stringify(offlineAnnotations),
+//     );
+//   } catch (err) {
+//     console.error("Erro ao salvar offline:", err);
+//   }
+// }
+
 async function saveAnnotationOffline(formData: FormData) {
   try {
     const offlineAnnotations = JSON.parse(
@@ -94,37 +146,76 @@ async function saveAnnotationOffline(formData: FormData) {
   }
 }
 
+// Função para converter arquivo em base64
+function fileToBase64WithMeta(
+  file: File,
+): Promise<{ base64: string; name: string; type: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function (evt) {
+      const base64String = (evt.target?.result as string) || "";
+      resolve({
+        base64: base64String,
+        name: file.name,
+        type: file.type,
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function RegisterPage() {
-  const { control, handleSubmit, setValue, reset, watch } = useForm<FormValues>(
-    {
-      defaultValues: {
-        title: "",
-        description: "",
-        nrAnotacao: "",
-        urgencia: "",
-        idTalhao: "",
-        images: [],
-        audios: [],
-      },
+  const { control, handleSubmit, reset, watch } = useForm<FormValues>({
+    defaultValues: {
+      title: "",
+      description: "",
+      nrAnotacao: "",
+      urgencia: "",
+      idTalhao: "",
+      images: [],
+      audios: [],
     },
-  );
+  });
 
   const [searchParams] = useSearchParams();
   const idAnnotation = searchParams.get("idAnnotation");
-  const farmData = JSON.parse(localStorage.getItem("farmData") || "");
+  const farmData = JSON.parse(localStorage.getItem("farmData") || "{}");
   const idTalhao = farmData.idTalhao;
   const [loadingRegister, setLoadingRegister] = useState(false);
-  const [disable, setDisable] = useState(true);
 
   const { latitude, longitude } = useRealTimeLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Notificação
+  const images = watch("images");
+  const audios = watch("audios");
+  const disableButton =
+    loadingRegister ||
+    !(images && images.length > 0 && audios && audios.length > 0);
+
+  const getNextNrAnotacao = () => {
+    const offlineAnnotations = JSON.parse(
+      localStorage.getItem("offlineAnnotations") || "[]",
+    ) as AnnotationType[];
+    const onlineAnnotations = JSON.parse(
+      localStorage.getItem("annotations") || "[]",
+    ) as AnnotationType[];
+
+    if (offlineAnnotations.length > 0) {
+      const lastOffline = offlineAnnotations[offlineAnnotations.length - 1];
+      return lastOffline.nrAnotacao + 1;
+    } else if (onlineAnnotations.length > 0) {
+      return onlineAnnotations.length + 1;
+    } else {
+      return 1;
+    }
+  };
+
   const notify = (message: string, type: "success" | "error") => {
     const toastOptions = {
       position: "top-center",
-      autoClose: 5000,
+      autoClose: 2000,
       hideProgressBar: false,
       closeOnClick: true,
       pauseOnHover: true,
@@ -136,30 +227,6 @@ function RegisterPage() {
       ? toast.success(message, toastOptions)
       : toast.error(message, toastOptions);
   };
-
-  const annotations = JSON.parse(localStorage.getItem("annotations") ?? "[]");
-  const annotation: AnnotationType = annotations.find(
-    (item: { id: string }) => item.id === idAnnotation,
-  );
-
-  // Se existir item na lista offline, pega o nrAnotacao do último e soma +1
-  // Caso contrário, pega o length da lista online (annotations) + 1
-  function getNextNrAnotacao() {
-    const offlineAnnotations = JSON.parse(
-      localStorage.getItem("offlineAnnotations") || "[]",
-    ) as AnnotationType[];
-    const onlineAnnotations = JSON.parse(
-      localStorage.getItem("annotations") || "[]",
-    ) as AnnotationType[];
-
-    if (offlineAnnotations.length > 0) {
-      const lastOffline = offlineAnnotations[offlineAnnotations.length - 1];
-      return lastOffline.nrAnotacao + 1;
-    } else {
-      // offlineAnnotations está vazia → usar length da lista online
-      return onlineAnnotations.length + 1;
-    }
-  }
 
   const onSubmit = async (data: FormValues) => {
     setLoadingRegister(true);
@@ -179,10 +246,7 @@ function RegisterPage() {
       formData.append("data", new Date().toISOString());
       formData.append("latitude", latitude.toString());
       formData.append("longitude", longitude.toString());
-      formData.append(
-        "idTalhao",
-        idAnnotation ? annotation.idTalhao : idTalhao,
-      );
+      formData.append("idTalhao", idTalhao || "");
       formData.append("idTecnicoCampo", user?.id ?? "");
       formData.append("titulo", data.title);
       formData.append("descricao", data.description);
@@ -191,7 +255,6 @@ function RegisterPage() {
       data.images.forEach((image) => formData.append("imagens", image));
       data.audios.forEach((audio) => formData.append("audios", audio));
 
-      // Tenta enviar online
       const response = await fetch(url, {
         method,
         body: formData,
@@ -199,32 +262,22 @@ function RegisterPage() {
 
       if (response.ok) {
         notify("Sucesso ao registrar a anotação!", "success");
-        navigate("/annotation");
+        setTimeout(() => {
+          navigate("/annotation");
+        }, 2500);
       } else {
-        const errorData = await response.json();
-        notify(
-          `Erro: ${
-            errorData.message || "Não foi possível concluir a operação"
-          }`,
-          "error",
-        );
+        throw new Error("Erro ao registrar online");
       }
     } catch (error) {
-      console.error("Erro no registro:", error);
-
-      // Em caso de falha no envio online, salvamos offline
-      const nrAnotacaoValue = getNextNrAnotacao();
+      console.error("Erro no registro online:", error);
 
       const formData = new FormData();
       formData.append("id", idAnnotation ?? "");
-      formData.append("nrAnotacao", nrAnotacaoValue.toString());
+      formData.append("nrAnotacao", getNextNrAnotacao().toString());
       formData.append("data", new Date().toISOString());
       formData.append("latitude", latitude.toString());
       formData.append("longitude", longitude.toString());
-      formData.append(
-        "idTalhao",
-        idAnnotation ? annotation.idTalhao : idTalhao,
-      );
+      formData.append("idTalhao", idTalhao || "");
       formData.append("idTecnicoCampo", user?.id ?? "");
       formData.append("titulo", data.title);
       formData.append("descricao", data.description);
@@ -236,45 +289,50 @@ function RegisterPage() {
       await saveAnnotationOffline(formData);
 
       notify("Sem conexão! A anotação foi salva localmente.", "success");
+      setTimeout(() => {
+        navigate("/annotation");
+      }, 2500);
     } finally {
       setLoadingRegister(false);
     }
   };
 
-  // Se for edição de anotação (idAnnotation !== null), carrega do localStorage
   useEffect(() => {
-    const annotations = JSON.parse(localStorage.getItem("annotations") ?? "[]");
-    const annotation: AnnotationType = annotations.find(
-      (item: { id: string }) => item.id === idAnnotation,
-    );
+    if (idAnnotation) {
+      const annotations = JSON.parse(
+        localStorage.getItem("annotations") ?? "[]",
+      ) as AnnotationType[];
 
-    if (annotation) {
-      reset({
-        title: annotation.titulo || "",
-        description: annotation.descricao || "",
-        nrAnotacao: annotation.nrAnotacao?.toString() || "",
-        urgencia: annotation.urgencia?.toString() || "",
-        idTalhao: annotation.idTalhao,
-        images: watch("audios") || [],
-        audios: watch("images") || [],
-      });
-    }
-  }, [idAnnotation, reset, watch]);
+      const annotation = annotations.find((item) => item.id === idAnnotation);
 
-  useEffect(() => {
-    if (loadingRegister) {
-      setDisable(true);
+      if (annotation) {
+        reset({
+          title: annotation.titulo || "",
+          description: annotation.descricao || "",
+          nrAnotacao: annotation.nrAnotacao?.toString() || "",
+          urgencia: annotation.urgencia?.toString() || "",
+          idTalhao: annotation.idTalhao,
+
+          // Se a imagem ou áudio já vierem como objeto { id, imageUrl },
+          // mapeie para string (URL) diretamente:
+          images:
+            annotation.imagens.map((img) =>
+              typeof img === "string" ? img : img?.imageUrl || "",
+            ) || [],
+          audios:
+            annotation.audios.map((audio) =>
+              typeof audio === "string" ? audio : audio?.audioUrl || "",
+            ) || [],
+        });
+      }
     }
-    if (watch("audios") && watch("images")) {
-      setDisable(false);
-    }
-  }, [loadingRegister, watch]);
+  }, [idAnnotation, reset]);
 
   return (
     <div className="bg-white h-[100vh] p-4 pb-10">
       <div className="flex gap-4 items-start justify-start mb-10">
         <Button
-          className="bg-transparent border-none shadow-none w-fit p-0 focus-within:border-none focus-within:outline-none"
+          className="bg-transparent border-none shadow-none w-fit p-0"
           onClick={() => navigate(-1)}
         >
           <IconBack fill="#181A18" />
@@ -335,15 +393,14 @@ function RegisterPage() {
             />
           )}
         />
-
         <Controller
           name="images"
           control={control}
-          render={() => (
+          render={({ field }) => (
             <ImageUploader
-              setImageFiles={(files) => setValue("images", files)}
+              imageList={field.value || []}
+              setImageFiles={(files) => field.onChange(files)}
               setDeleted={() => {}}
-              imageList={[]}
             />
           )}
         />
@@ -351,7 +408,7 @@ function RegisterPage() {
           <button
             type="submit"
             className="w-full gap-4 text-white bg-[#EAC00F] flex items-center justify-center h-[55px] rounded-full text-[1.25rem] leading-[1.625rem] font-medium disabled:bg-[#dadedf]"
-            disabled={disable}
+            disabled={disableButton}
           >
             <RotatingLines
               visible={loadingRegister}
