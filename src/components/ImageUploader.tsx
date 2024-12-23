@@ -5,7 +5,7 @@ import { FaRegImage } from "react-icons/fa";
 interface ImageUploaderProps {
   setImageFiles: (files: File[]) => void;
   setDeleted: (deletedImages: string[]) => void;
-  imageList?: string[]; // Lista de URLs de imagens carregadas previamente
+  imageList?: string[];
 }
 
 const ImageUploader = ({
@@ -13,21 +13,21 @@ const ImageUploader = ({
   setDeleted,
   imageList = [],
 }: ImageUploaderProps) => {
-  const [imagePreviews, setImagePreviews] = useState<string[]>(imageList); // URLs carregadas previamente
-  const [images, setImages] = useState<File[]>([]); // Imagens novas (arquivos)
+  const [imagePreviews, setImagePreviews] = useState<string[]>(imageList);
+  const [images, setImages] = useState<File[]>([]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const newImageFiles = files.filter((file) =>
+    const newImageFiles = files.filter((file): file is File =>
       file.type.startsWith("image/"),
     );
 
-    setImages((prevImages) => {
-      const updatedImages = [...prevImages, ...newImageFiles];
-      setImageFiles(updatedImages); // Atualiza no pai
-      return updatedImages;
-    });
+    // Combine the existing files with the new ones
+    const updatedFiles = [...images, ...newImageFiles];
+    setImages(updatedFiles); // Update local state
+    setImageFiles(updatedFiles); // Update parent state
 
+    // Generate previews for the new files
     const newImagePreviews = newImageFiles.map((file) =>
       URL.createObjectURL(file),
     );
@@ -38,19 +38,17 @@ const ImageUploader = ({
     const isPreloaded = index < imageList.length;
 
     if (isPreloaded) {
-      // Remove uma imagem carregada previamente
-      setDeleted((prevDeleted) => [...prevDeleted, imageList[index]]);
+      // Add the preloaded image to the deleted list
+      setDeleted([...imageList.slice(0, index), ...imageList.slice(index + 1)]);
     } else {
-      // Remove uma imagem adicionada localmente
+      // Remove a locally added image
       const localIndex = index - imageList.length;
-      setImages((prevImages) => {
-        const updatedImages = prevImages.filter((_, i) => i !== localIndex);
-        setImageFiles(updatedImages); // Atualiza o estado no componente pai
-        return updatedImages;
-      });
+      const updatedImages = images.filter((_, i) => i !== localIndex);
+      setImages(updatedImages);
+      setImageFiles(updatedImages);
     }
 
-    // Remove o preview da imagem do estado
+    // Remove the preview image
     setImagePreviews((prevPreviews) =>
       prevPreviews.filter((_, i) => i !== index),
     );

@@ -45,3 +45,44 @@ export const fetchAnnotations = async (userId: string | undefined) => {
 
   return await response.json();
 };
+
+export const fetchFieldsByArea = async (areaId: string | undefined) => {
+  if (!areaId) {
+    throw new Error("ID da área não encontrado.");
+  }
+
+  const response = await fetch(
+    `https://farmlog-api.wr-agro.dev.br:3003/api/getFields?ByArea=${areaId}`,
+    {
+      headers: {
+        "User-Agent": "insomnia/2023.5.8",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar campos por área.");
+  }
+
+  return await response.json();
+};
+export const fetchAreasByFarm = async (farmId: string | undefined) => {
+  if (!farmId) {
+    throw new Error("ID da fazenda não encontrado.");
+  }
+
+  const response = await fetch(
+    `https://farmlog-api.wr-agro.dev.br:3003/api/getAreas?ByFarm=${farmId}`,
+    {
+      headers: {
+        "User-Agent": "insomnia/2023.5.8",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar áreas da fazenda.");
+  }
+
+  return await response.json();
+};

@@ -17,6 +17,7 @@ type FormValues = {
   description: string;
   nrAnotacao: string;
   urgencia: string;
+  idTalhao: string;
   images: File[];
   audios: File[];
 };
@@ -94,20 +95,26 @@ async function saveAnnotationOffline(formData: FormData) {
 }
 
 function RegisterPage() {
-  const { control, handleSubmit, setValue, reset } = useForm<FormValues>({
-    defaultValues: {
-      title: "",
-      description: "",
-      nrAnotacao: "",
-      urgencia: "",
-      images: [],
-      audios: [],
+  const { control, handleSubmit, setValue, reset, watch } = useForm<FormValues>(
+    {
+      defaultValues: {
+        title: "",
+        description: "",
+        nrAnotacao: "",
+        urgencia: "",
+        idTalhao: "",
+        images: [],
+        audios: [],
+      },
     },
-  });
+  );
 
   const [searchParams] = useSearchParams();
   const idAnnotation = searchParams.get("idAnnotation");
+  const farmData = JSON.parse(localStorage.getItem("farmData") || "");
+  const idTalhao = farmData.idTalhao;
   const [loadingRegister, setLoadingRegister] = useState(false);
+  const [disable, setDisable] = useState(true);
 
   const { latitude, longitude } = useRealTimeLocation();
   const navigate = useNavigate();
@@ -129,6 +136,11 @@ function RegisterPage() {
       ? toast.success(message, toastOptions)
       : toast.error(message, toastOptions);
   };
+
+  const annotations = JSON.parse(localStorage.getItem("annotations") ?? "[]");
+  const annotation: AnnotationType = annotations.find(
+    (item: { id: string }) => item.id === idAnnotation,
+  );
 
   // Se existir item na lista offline, pega o nrAnotacao do último e soma +1
   // Caso contrário, pega o length da lista online (annotations) + 1
@@ -167,7 +179,10 @@ function RegisterPage() {
       formData.append("data", new Date().toISOString());
       formData.append("latitude", latitude.toString());
       formData.append("longitude", longitude.toString());
-      formData.append("idTalhao", "766574c2-e378-4a49-a16e-d599bc9b4956");
+      formData.append(
+        "idTalhao",
+        idAnnotation ? annotation.idTalhao : idTalhao,
+      );
       formData.append("idTecnicoCampo", user?.id ?? "");
       formData.append("titulo", data.title);
       formData.append("descricao", data.description);
@@ -206,7 +221,10 @@ function RegisterPage() {
       formData.append("data", new Date().toISOString());
       formData.append("latitude", latitude.toString());
       formData.append("longitude", longitude.toString());
-      formData.append("idTalhao", "766574c2-e378-4a49-a16e-d599bc9b4956");
+      formData.append(
+        "idTalhao",
+        idAnnotation ? annotation.idTalhao : idTalhao,
+      );
       formData.append("idTecnicoCampo", user?.id ?? "");
       formData.append("titulo", data.title);
       formData.append("descricao", data.description);
@@ -236,11 +254,21 @@ function RegisterPage() {
         description: annotation.descricao || "",
         nrAnotacao: annotation.nrAnotacao?.toString() || "",
         urgencia: annotation.urgencia?.toString() || "",
-        images: [],
-        audios: [],
+        idTalhao: annotation.idTalhao,
+        images: watch("audios") || [],
+        audios: watch("images") || [],
       });
     }
-  }, [idAnnotation, reset]);
+  }, [idAnnotation, reset, watch]);
+
+  useEffect(() => {
+    if (loadingRegister) {
+      setDisable(true);
+    }
+    if (watch("audios") && watch("images")) {
+      setDisable(false);
+    }
+  }, [loadingRegister, watch]);
 
   return (
     <div className="bg-white h-[100vh] p-4 pb-10">
@@ -323,7 +351,7 @@ function RegisterPage() {
           <button
             type="submit"
             className="w-full gap-4 text-white bg-[#EAC00F] flex items-center justify-center h-[55px] rounded-full text-[1.25rem] leading-[1.625rem] font-medium disabled:bg-[#dadedf]"
-            disabled={loadingRegister}
+            disabled={disable}
           >
             <RotatingLines
               visible={loadingRegister}

@@ -6,8 +6,8 @@ import { FaTrash } from "react-icons/fa";
 import AudioPlayer from "./AudioPlayer";
 
 interface AudioRecorderProps {
-  setAudioList: (files: File[]) => void;
-  audioList?: File[]; // Lista de arquivos de áudio carregados previamente
+  setAudioList: (files: File[]) => void; // Function to update the parent list
+  audioList?: File[]; // Preloaded list of audio files
 }
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({
@@ -18,14 +18,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
     null,
   );
-  const [audioFiles, setAudioFiles] = useState<File[]>(audioList);
   const [audioURLs, setAudioURLs] = useState<string[]>(
     audioList.map((file) => URL.createObjectURL(file)),
   );
   const [recordingTime, setRecordingTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]); // Armazena os blobs temporariamente
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (isRecording) {
@@ -41,30 +40,27 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     setStream(stream);
-    const mediaRecorder = new MediaRecorder(stream);
-    setMediaRecorder(mediaRecorder);
+    const recorder = new MediaRecorder(stream);
+    setMediaRecorder(recorder);
 
-    // Limpa chunks antes de começar
     chunksRef.current = [];
 
-    mediaRecorder.ondataavailable = (event) => {
+    recorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         chunksRef.current.push(event.data);
       }
     };
 
-    mediaRecorder.onstop = () => {
-      // Quando parar, criamos o arquivo a partir de todos os chunks
+    recorder.onstop = () => {
       if (chunksRef.current.length > 0) {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         const audioFile = new File([blob], `recording-${Date.now()}.webm`, {
           type: "audio/webm",
         });
-        setAudioFiles((prevFiles) => {
-          const updated = [...prevFiles, audioFile];
-          setAudioList(updated); // Atualiza no pai agora que o arquivo está pronto
-          return updated;
-        });
+
+        // Update the audio list and URLs
+        const updatedList = [...audioList, audioFile];
+        setAudioList(updatedList);
         setAudioURLs((prevURLs) => [
           ...prevURLs,
           URL.createObjectURL(audioFile),
@@ -72,7 +68,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
       }
     };
 
-    mediaRecorder.start();
+    recorder.start();
     setRecordingTime(0);
     setIsRecording(true);
   };
@@ -84,21 +80,17 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
   };
 
   const cancelRecording = () => {
-    // Caso o usuário cancele antes de parar, não salvamos nada
     mediaRecorder?.stop();
     stream?.getTracks().forEach((track) => track.stop());
     setIsRecording(false);
     setRecordingTime(0);
-    chunksRef.current = []; // Limpamos os chunks, não salvamos o áudio.
+    chunksRef.current = [];
   };
 
   const deleteRecording = (index: number) => {
+    const updatedAudioList = audioList.filter((_, i) => i !== index);
+    setAudioList(updatedAudioList); // Update the parent state
     setAudioURLs((prevURLs) => prevURLs.filter((_, i) => i !== index));
-    setAudioFiles((prevFiles) => {
-      const updatedFiles = prevFiles.filter((_, i) => i !== index);
-      setAudioList(updatedFiles); // Atualiza a lista no componente pai
-      return updatedFiles;
-    });
   };
 
   return (
